@@ -10,4 +10,9 @@
 std::string native_file_dialog(
     const std::vector<std::pair<std::string, std::string>> &filetypes,
     bool save);
+#elif defined(__linux__)
+// Native Linux file dialog using kdialog (KDE) or zenity (fallback).
+std::string native_file_dialog(
+    const std::vector<std::pair<std::string, std::string>> &filetypes,
+    bool save);
 #endif
