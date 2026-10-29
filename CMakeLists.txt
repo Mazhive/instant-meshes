@@ -50,16 +50,19 @@ endif()
 
 # Find system dependencies
 find_package(Eigen3 3.4 REQUIRED)
-set(EIGEN3_INCLUDE_DIR "/usr/include/eigen3")
 find_package(glfw3 3.3 REQUIRED)
 
 # Build NanoGUI (without its bundled dependencies)
 set(NANOGUI_BUILD_EXAMPLE OFF CACHE BOOL " " FORCE)
 set(NANOGUI_BUILD_SHARED  OFF CACHE BOOL " " FORCE)
 set(NANOGUI_BUILD_PYTHON  OFF CACHE BOOL " " FORCE)
-set(NANOGUI_USE_GLAD OFF CACHE BOOL " " FORCE)
+# Windows needs the bundled GLAD OpenGL loader; Linux/macOS use system GL headers
+if (NOT WIN32)
+  set(NANOGUI_USE_GLAD OFF CACHE BOOL " " FORCE)
+endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/nanogui ext_build/nanogui)
 set_property(TARGET nanogui glfw bin2c PROPERTY FOLDER "dependencies")
+add_definitions(${NANOGUI_EXTRA_DEFS})
 
 # Build TBB (bundled)
 set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
@@ -70,7 +73,9 @@ set(TBB_BUILD_TESTS OFF CACHE BOOL " " FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ext/tbb ext_build/tbb)
 set_property(TARGET tbb_static tbb_def_files PROPERTY FOLDER "dependencies")
 # Suppress -Wchanges-meaning in bundled TBB (fixed in newer TBB versions)
-target_compile_options(tbb_static PRIVATE -Wno-changes-meaning)
+if (NOT MSVC)
+  target_compile_options(tbb_static PRIVATE -Wno-changes-meaning)
+endif()
 
 # Compiler warnings for InstantMeshes target
 if(MSVC)
@@ -87,7 +92,7 @@ include_directories(
   # NanoGUI
   ${CMAKE_CURRENT_SOURCE_DIR}/ext/nanogui/include
   # System dependencies
-  ${EIGEN3_INCLUDE_DIR}
+  ${NANOGUI_EXTRA_INCS}
   ${CMAKE_CURRENT_SOURCE_DIR}/ext/tbb/include
   ${GLFW_INCLUDE_DIRS}
   # Local dependencies
@@ -162,7 +167,7 @@ add_executable(InstantMeshes MACOSX_BUNDLE
   ext/rply/rply.c
   ${EXTRA_SOURCE})
 
-target_link_libraries(InstantMeshes PRIVATE tbb_static nanogui ${GLFW_LIBRARIES} ${NANOGUI_EXTRA_LIBS})
+target_link_libraries(InstantMeshes PRIVATE Eigen3::Eigen tbb_static nanogui ${GLFW_LIBRARIES} ${NANOGUI_EXTRA_LIBS})
 target_include_directories(InstantMeshes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ext/nanogui/include)
 
 set_target_properties(InstantMeshes PROPERTIES OUTPUT_NAME "Instant Meshes")
